@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Device Control Panel (Raw JS)</title>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; padding: 20px; }
+    h2 { margin-bottom: 20px; }
+    .item { display: flex; align-items: center; margin-bottom: 10px; background: #fff; padding: 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .label { width: 150px; }
+    .controls { display: flex; gap: 5px; }
+    button { padding: 5px 10px; }
+    input { width: 60px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <h2>Device Control Panel</h2>
+  <div id="container"></div>
+
+  <script>
+    var firebaseUrl = "https://sadiref-7d560-default-rtdb.firebaseio.com/devices/103.json";
+
+    var keys = [
+      "comofdtemp", "comofntemp", "comondtemp", "comonntemp",
+      "fanof", "fanon", "heatontemp", "heattime"
+    ];
+
+    function loadData() {
+      fetch(firebaseUrl)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          var container = document.getElementById("container");
+          container.innerHTML = "";
+
+          keys.forEach(function(key) {
+            var value = data[key];
+
+            var item = document.createElement("div");
+            item.className = "item";
+
+            var label = document.createElement("div");
+            label.className = "label";
+            label.textContent = key;
+
+            var controls = document.createElement("div");
+            controls.className = "controls";
+
+            var minusBtn = document.createElement("button");
+            minusBtn.textContent = "-";
+
+            var input = document.createElement("input");
+            input.type = "text";
+            input.value = value;
+
+            var plusBtn = document.createElement("button");
+            plusBtn.textContent = "+";
+
+            // minus button click
+            minusBtn.onclick = function() {
+              var newVal = parseFloat(input.value) - 1;
+              updateValue(key, newVal);
+            };
+
+            // input field change
+            input.onchange = function() {
+              updateValue(key, input.value);
+            };
+
+            // plus button click
+            plusBtn.onclick = function() {
+              var newVal = parseFloat(input.value) + 1;
+              updateValue(key, newVal);
+            };
+
+            controls.appendChild(minusBtn);
+            controls.appendChild(input);
+            controls.appendChild(plusBtn);
+
+            item.appendChild(label);
+            item.appendChild(controls);
+            container.appendChild(item);
+          });
+        });
+    }
+
+    function updateValue(key, newValue) {
+      fetch(firebaseUrl)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          data[key] = newValue.toString();
+
+          fetch(firebaseUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+          })
+          .then(function() {
+            loadData(); // refresh UI after update
+          });
+        });
+    }
+
+    loadData();
+    setInterval(loadData, 5000); // auto refresh every 5s
+  </script>
+
+</body>
+</html>
