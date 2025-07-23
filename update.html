@@ -27,10 +27,15 @@
       "fanof", "fanon", "heatontemp", "heattime"
     ];
 
+    var allowNegativeKeys = [
+      "comofdtemp", "comofntemp", "comondtemp", "comonntemp",
+      "fanof", "fanon", "heatontemp"
+    ];
+
     function loadData() {
       fetch(firebaseUrl)
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
           var container = document.getElementById("container");
           container.innerHTML = "";
 
@@ -55,9 +60,9 @@
 
             // If key is heattime, show as minutes
             if (key === "heattime") {
-              input.value = Math.round(parseFloat(value) / 7.5) || 0;
+              input.value = Math.round(parseFloat(value) / 7.5);
             } else {
-              input.value = value || 0;
+              input.value = value;
             }
 
             var plusBtn = document.createElement("button");
@@ -65,30 +70,28 @@
 
             // minus button click
             minusBtn.onclick = function() {
-              var currentValue = parseFloat(input.value);
-              if (isNaN(currentValue)) currentValue = 0;
-
-              var newVal = currentValue - 1;
-              if (newVal < 0) newVal = 0;
-
+              var newVal = parseFloat(input.value) - 1;
+              if (!allowNegativeKeys.includes(key) && newVal < 0) {
+                newVal = 0;
+              }
               input.value = newVal;
               updateValue(key, newVal);
             };
 
             // input field change
             input.onchange = function() {
-              var inputValue = parseFloat(input.value);
-              if (isNaN(inputValue)) inputValue = 0;
-              input.value = inputValue;
-              updateValue(key, inputValue);
+              var val = parseFloat(input.value);
+              if (isNaN(val)) val = 0;
+              if (!allowNegativeKeys.includes(key) && val < 0) {
+                val = 0;
+              }
+              input.value = val;
+              updateValue(key, val);
             };
 
             // plus button click
             plusBtn.onclick = function() {
-              var currentValue = parseFloat(input.value);
-              if (isNaN(currentValue)) currentValue = 0;
-
-              var newVal = currentValue + 1;
+              var newVal = parseFloat(input.value) + 1;
               input.value = newVal;
               updateValue(key, newVal);
             };
@@ -105,25 +108,26 @@
     }
 
     function updateValue(key, inputValue) {
-      var value = parseFloat(inputValue);
-      if (isNaN(value)) value = 0;
-
       fetch(firebaseUrl)
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          var newValue;
           if (key === "heattime") {
-            data[key] = (value * 7.5).toString(); // store as seconds
+            newValue = (parseInt(inputValue) * 7.5).toString();
           } else {
-            data[key] = value.toString();
+            newValue = inputValue.toString();
           }
+          data[key] = newValue;
 
-          return fetch(firebaseUrl, {
+          fetch(firebaseUrl, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
+          })
+          .then(function() {
+            loadData(); // refresh UI after update
           });
-        })
-        .then(() => loadData());
+        });
     }
 
     loadData();
