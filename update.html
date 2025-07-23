@@ -29,8 +29,8 @@
 
     function loadData() {
       fetch(firebaseUrl)
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
+        .then(response => response.json())
+        .then(data => {
           var container = document.getElementById("container");
           container.innerHTML = "";
 
@@ -55,9 +55,9 @@
 
             // If key is heattime, show as minutes
             if (key === "heattime") {
-              input.value = Math.round(parseFloat(value) / 7.5);
+              input.value = Math.round(parseFloat(value) / 7.5) || 0;
             } else {
-              input.value = value;
+              input.value = value || 0;
             }
 
             var plusBtn = document.createElement("button");
@@ -65,20 +65,30 @@
 
             // minus button click
             minusBtn.onclick = function() {
-              var newVal = parseFloat(input.value) - 1;
+              var currentValue = parseFloat(input.value);
+              if (isNaN(currentValue)) currentValue = 0;
+
+              var newVal = currentValue - 1;
               if (newVal < 0) newVal = 0;
+
               input.value = newVal;
               updateValue(key, newVal);
             };
 
             // input field change
             input.onchange = function() {
-              updateValue(key, input.value);
+              var inputValue = parseFloat(input.value);
+              if (isNaN(inputValue)) inputValue = 0;
+              input.value = inputValue;
+              updateValue(key, inputValue);
             };
 
             // plus button click
             plusBtn.onclick = function() {
-              var newVal = parseFloat(input.value) + 1;
+              var currentValue = parseFloat(input.value);
+              if (isNaN(currentValue)) currentValue = 0;
+
+              var newVal = currentValue + 1;
               input.value = newVal;
               updateValue(key, newVal);
             };
@@ -95,30 +105,29 @@
     }
 
     function updateValue(key, inputValue) {
-      fetch(firebaseUrl)
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-          var newValue;
-          if (key === "heattime") {
-            newValue = (parseInt(inputValue) * 7.5).toString();
-          } else {
-            newValue = inputValue.toString();
-          }
-          data[key] = newValue;
+      var value = parseFloat(inputValue);
+      if (isNaN(value)) value = 0;
 
-          fetch(firebaseUrl, {
+      fetch(firebaseUrl)
+        .then(response => response.json())
+        .then(data => {
+          if (key === "heattime") {
+            data[key] = (value * 7.5).toString(); // store as seconds
+          } else {
+            data[key] = value.toString();
+          }
+
+          return fetch(firebaseUrl, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
-          })
-          .then(function() {
-            loadData(); // refresh UI after update
           });
-        });
+        })
+        .then(() => loadData());
     }
 
     loadData();
-    setInterval(loadData, 1000); // auto refresh every 5s
+    setInterval(loadData, 1000); // auto refresh every 1s
   </script>
 
 </body>
