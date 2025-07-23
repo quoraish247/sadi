@@ -52,7 +52,13 @@
 
             var input = document.createElement("input");
             input.type = "text";
-            input.value = value;
+
+            // If key is heattime, show as minutes
+            if (key === "heattime") {
+              input.value = Math.round(parseFloat(value) / 7.5);
+            } else {
+              input.value = value;
+            }
 
             var plusBtn = document.createElement("button");
             plusBtn.textContent = "+";
@@ -60,6 +66,8 @@
             // minus button click
             minusBtn.onclick = function() {
               var newVal = parseFloat(input.value) - 1;
+              if (newVal < 0) newVal = 0;
+              input.value = newVal;
               updateValue(key, newVal);
             };
 
@@ -71,6 +79,7 @@
             // plus button click
             plusBtn.onclick = function() {
               var newVal = parseFloat(input.value) + 1;
+              input.value = newVal;
               updateValue(key, newVal);
             };
 
@@ -85,11 +94,17 @@
         });
     }
 
-    function updateValue(key, newValue) {
+    function updateValue(key, inputValue) {
       fetch(firebaseUrl)
         .then(function(response) { return response.json(); })
         .then(function(data) {
-          data[key] = newValue.toString();
+          var newValue;
+          if (key === "heattime") {
+            newValue = (parseInt(inputValue) * 7.5).toString();
+          } else {
+            newValue = inputValue.toString();
+          }
+          data[key] = newValue;
 
           fetch(firebaseUrl, {
             method: "PUT",
